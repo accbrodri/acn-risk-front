@@ -1,7 +1,21 @@
 import type { View } from "@/components/api"
-import { ROLES, roleViews, type Role } from "@/domain/roles"
+import { roleLabel, roleViews } from "@/domain/roles"
+import type { User } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import {
+  Avatar,
+  AvatarFallback,
+} from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const NAV: { view: View; label: string }[] = [
   { view: "dash", label: "Dashboard" },
@@ -15,23 +29,26 @@ export function Header({
   view,
   go,
   onNew,
-  role,
-  onRole,
+  user,
+  onLogout,
 }: {
   view: View
   go: (v: View) => void
   onNew: () => void
-  role: Role
-  onRole: (r: Role) => void
+  user: User
+  onLogout: () => void
 }) {
-  const views = roleViews(role)
+  const views = roleViews(user.role)
+  const initials = user.full_name
+    .split(" ")
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase()
   return (
     <header className="border-b bg-card text-foreground">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <img src="/accenture-logo.png" alt="Accenture" className="h-6" />
-          <b className="text-lg">Risk Krono</b>
-        </div>
+        <img src="/accenture-logo.png" alt="Accenture" className="h-6" />
         <nav className="flex flex-1 flex-wrap gap-1">
           {NAV.filter((n) => views.includes(n.view)).map((n) => (
             <button
@@ -47,25 +64,33 @@ export function Header({
             </button>
           ))}
         </nav>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          Rol
-          <select
-            value={role}
-            onChange={(e) => onRole(e.target.value as Role)}
-            className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
-          >
-            {ROLES.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
         {views.includes("risks") && (
           <Button onClick={onNew}>
             + Nuevo riesgo
           </Button>
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger className="rounded-full outline-none transition focus-visible:ring-2 focus-visible:ring-ring">
+            <Avatar className="size-9">
+              <AvatarFallback className="bg-linear-to-br from-[#4b0082] to-[#a100ff] font-semibold text-white">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="flex flex-col gap-0.5">
+                <span className="font-medium text-foreground">{user.full_name}</span>
+                <span className="text-xs font-normal text-muted-foreground">{roleLabel(user.role)}</span>
+                <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={onLogout}>
+              Cerrar sesión
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )

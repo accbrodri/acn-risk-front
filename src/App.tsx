@@ -15,7 +15,10 @@ import { teamsMsg } from "@/domain/exports"
 import { uid } from "@/domain/model"
 import { load, save } from "@/lib/storage"
 import type { Data } from "@/domain/types"
-import { roleViews, type Role } from "@/domain/roles"
+import { roleViews } from "@/domain/roles"
+import { LoginPage } from "@/components/LoginPage"
+import { useLogout, useMe } from "@/lib/useAuth"
+import { AuthLoader } from "@/components/AuthLoader"
 
 const CHAT_INIT: ChatMsg[] = [
   {
@@ -29,8 +32,9 @@ const DET_INIT =
 
 export default function App() {
   const [data, setDataState] = useState<Data>(load)
+  const me = useMe()
+  const logout = useLogout()
   const [view, setView] = useState<View>("dash")
-  const [role, setRole] = useState<Role>("pm")
   const [filters, setFiltersState] = useState<Filters>({})
   const [modal, setModal] = useState<string | null>(null)
   const [printKind, setPrintKind] = useState<ReportKind | null>(null)
@@ -41,6 +45,12 @@ export default function App() {
   useEffect(() => {
     save(data)
   }, [data])
+
+  if (me.isLoading) return <div className="p-8 text-muted-foreground">Cargando sesión…</div>
+  const user = me.data
+  if (logout.isPending) return <AuthLoader text="Cerrando sesión…" />
+  if (!user) return <LoginPage />
+  const role = user.role
 
   const { risks } = data
   const views = roleViews(role)
@@ -114,7 +124,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div>
-        <Header view={current} go={(v) => api.go(v)} onNew={() => api.openRisk(null)} role={role} onRole={setRole} />
+        <Header view={current} go={(v) => api.go(v)} onNew={() => api.openRisk(null)} user={user} onLogout={() => logout.mutate()} />
         <main className="mx-auto max-w-7xl space-y-4 p-4">
           {current === "dash" && <Dashboard api={api} />}
           {current === "risks" && <Risks api={api} />}
